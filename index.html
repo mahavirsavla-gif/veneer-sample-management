@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veneer Sample Management</title>
+<style>
+:root{--navy:#17345c;--blue:#2463b5;--bg:#f3f6fb;--line:#dfe6f0;--text:#1e293b;--muted:#64748b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+header{background:var(--navy);color:white;padding:20px max(18px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:22px;margin:0 0 5px}header p{margin:0;color:#d6e2f2;font-size:13px}
+.wrap{max-width:1180px;margin:24px auto;padding:0 16px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.stat,.panel{background:white;border:1px solid var(--line);border-radius:12px;padding:17px;box-shadow:0 2px 9px #20334f08}
+.stat span{font-size:13px;color:var(--muted)}.stat strong{display:block;font-size:27px;margin-top:7px;color:var(--navy)}
+.panel{margin-bottom:16px}.panel h2{font-size:18px;margin:0 0 15px}
+.formgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cfd8e5;border-radius:7px;background:#fff;font:inherit;color:var(--text)}
+textarea{min-height:42px;resize:vertical}.wide{grid-column:1/-1}
+.actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:14px}
+button{border:0;border-radius:7px;padding:10px 14px;background:var(--blue);color:white;font-weight:bold;cursor:pointer}
+button.secondary{background:#e9eff8;color:#23466f}button.danger{background:#fff0ef;color:#b42318}button:hover{filter:brightness(.96)}
+.toolbar{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:13px}
+.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:930px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #e9edf3;font-size:13px;vertical-align:top}
+th{background:#f7f9fc;color:#526078;white-space:nowrap}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#e8f7ed;color:#16713b;font-size:11px;font-weight:bold}
+.badge.returned{background:#fff1dc;color:#925400}
+.muted{color:var(--muted);font-size:12px}.masterbox{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}.tabs button.active{background:var(--navy);color:#fff}.tab-panel[hidden]{display:none!important}.reportfilters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px}.masteritem{display:flex;gap:8px;align-items:center;margin-top:8px}.masteritem span{flex:1;background:#f5f7fb;border:1px solid #e5eaf2;border-radius:6px;padding:7px 9px;font-size:13px}.masterlist{max-height:150px;overflow:auto}.masteradd{display:flex;gap:7px}.masteradd input{min-width:0}.masteradd button{white-space:nowrap}.empty{text-align:center;color:var(--muted);padding:25px}
+#message{font-size:13px;color:#16713b}.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 16px 25px}
+@media(max-width:800px){.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{grid-template-columns:1fr 1fr}header{padding:18px;align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.masterbox{grid-template-columns:1fr}.reportfilters{grid-template-columns:1fr}}@media(max-width:480px){.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}.formgrid,.toolbar{grid-template-columns:1fr}.wide{grid-column:auto}.wrap{margin:14px auto}}
+
+@page{size:A6 portrait;margin:0}
+#a6PrintArea{display:none}
+@media print{
+body.print-a6{background:#fff!important}
+body.print-a6>*{display:none!important}
+body.print-a6 #a6PrintArea{display:block!important;position:absolute;inset:0;width:105mm;min-height:148mm;padding:8mm 7mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+body.print-a6 #a6PrintArea .slip{width:100%;min-height:130mm;border:1px solid #222;padding:6mm;display:flex;flex-direction:column}
+body.print-a6 #a6PrintArea h1{font-size:17px;text-align:center;margin:0 0 3mm;letter-spacing:.5px}
+body.print-a6 #a6PrintArea .slip-sub{text-align:center;font-size:9px;margin-bottom:5mm;color:#444}
+body.print-a6 #a6PrintArea .slip-line{display:flex;justify-content:space-between;gap:4mm;border-bottom:1px dashed #777;padding:2.6mm 0;font-size:10px}
+body.print-a6 #a6PrintArea .slip-line strong{font-size:10px;text-align:right}
+body.print-a6 #a6PrintArea .slip-group{border:1px solid #222;padding:3mm;margin:2mm 0 3mm;text-align:center}
+body.print-a6 #a6PrintArea .slip-group small{display:block;font-size:9px}
+body.print-a6 #a6PrintArea .slip-group strong{font-size:19px}
+body.print-a6 #a6PrintArea .slip-note{font-size:9px;margin-top:4mm;line-height:1.4}
+body.print-a6 #a6PrintArea .slip-sign{display:flex;justify-content:space-between;gap:5mm;margin-top:auto;padding-top:13mm;font-size:9px}
+body.print-a6 #a6PrintArea .slip-sign div{width:48%;border-top:1px solid #333;padding-top:2mm}
+body.print-a6 #a6PrintArea .slip-foot{text-align:center;font-size:8px;color:#555;margin-top:5mm}
+
+body.print-a6 #a6PrintArea .multi-slip{padding:4mm}
+body.print-a6 #a6PrintArea .multi-slip h1{font-size:14px;margin-bottom:1mm}
+body.print-a6 #a6PrintArea .multi-slip .slip-sub{margin-bottom:2mm;font-size:8px}
+body.print-a6 #a6PrintArea .multi-slip .slip-line{padding:1.5mm 0;font-size:8px}
+body.print-a6 #a6PrintArea .multi-slip .slip-line strong{font-size:8px}
+body.print-a6 #a6PrintArea .multi-summary{text-align:center;font-size:9px;padding:2mm 0;border-bottom:1px solid #444}
+body.print-a6 #a6PrintArea .multi-groups{width:100%;min-width:0;border-collapse:collapse;margin-top:2mm}
+body.print-a6 #a6PrintArea .multi-groups th,body.print-a6 #a6PrintArea .multi-groups td{font-size:6.5px;padding:1.2mm .5mm;border:1px solid #777;white-space:normal;overflow-wrap:anywhere}
+body.print-a6 #a6PrintArea .multi-groups th{background:#eee!important}
+body.print-a6 #a6PrintArea .multi-slip .slip-note{font-size:7px;margin-top:2mm}
+body.print-a6 #a6PrintArea .multi-slip .slip-sign{padding-top:6mm;font-size:7px}
+body.print-a6 #a6PrintArea .multi-slip .slip-foot{font-size:6px;margin-top:2mm}
+
+}
+@media print{body{background:white}header{background:white;color:black;padding:0 0 15px}header p{color:#444}.wrap{max-width:none;margin:0;padding:0}.stats,.formpanel,.toolbar,.top-actions,.actions,footer,.editcol{display:none!important}.panel{border:0;box-shadow:none;padding:0}.tablewrap{overflow:visible}table{min-width:0}th,td{font-size:9px;padding:6px 4px}th:last-child,td:last-child{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Veneer Sample Management</h1><p>Dealer-wise veneer sample register</p></div>
+  <div class="top-actions"><button class="secondary" id="backupBtn">Backup Data</button><button class="secondary" id="restoreBtn">Restore Backup</button><input id="restoreFile" type="file" accept=".json,application/json" hidden></div>
+</header>
+<main class="wrap">
+  <nav class="tabs" aria-label="Main sections">
+    <button type="button" class="active" data-tab="entry">Sample Entry</button>
+    <button type="button" data-tab="register">Sample Register</button>
+    <button type="button" data-tab="masters">Masters</button>
+    <button type="button" data-tab="history">Dealer-wise History</button>
+  </nav>
+  <section class="stats">
+    <div class="stat"><span>Total Sample Entries</span><strong id="totalEntries">0</strong></div>
+    <div class="stat"><span>Total Pieces</span><strong id="totalPieces">0</strong></div>
+    <div class="stat"><span>Unique Groups</span><strong id="totalGroups">0</strong></div>
+  </section>
+
+  <section class="panel tab-panel" id="mastersPanel" data-tab-panel="masters" hidden>
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+      <div><h2 style="margin:0 0 5px">Master Management</h2><p class="muted" style="margin:0">Manage dealers, species, types and sizes. Import or export all master values in one CSV file.</p></div>
+      <div class="top-actions"><button class="secondary" id="exportMastersBtn">Export Masters CSV</button><button class="secondary" id="importMastersBtn">Import Masters CSV</button><input id="importMastersFile" type="file" accept=".csv,text/csv" hidden></div>
+    </div>
+    <div class="masterbox" style="margin-top:16px">
+      <div><label>Dealer Master (Dealer Name + Area)</label><div class="masteradd" style="margin-bottom:7px"><input id="newDealerMaster" placeholder="Enter dealer name"></div><div class="masteradd"><input id="newDealerArea" placeholder="Enter area / city"><button type="button" id="addDealerMaster">Add Dealer</button></div><div id="dealerMasterList" class="masterlist"></div></div>
+      <div><label for="newSpeciesMaster">Species Master</label><div class="masteradd"><input id="newSpeciesMaster" placeholder="Enter species name"><button type="button" id="addSpeciesMaster">Add Species</button></div><div id="speciesMasterList" class="masterlist"></div></div>
+      <div><label for="newTypeMaster">Type Master</label><div class="masteradd"><input id="newTypeMaster" placeholder="Enter veneer type"><button type="button" id="addTypeMaster">Add Type</button></div><div id="typeMasterList" class="masterlist"></div></div>
+      <div><label for="newSizeMaster">Size Master</label><div class="masteradd"><input id="newSizeMaster" placeholder="e.g. 8 × 4 ft"><button type="button" id="addSizeMaster">Add Size</button></div><div id="sizeMasterList" class="masterlist"></div></div>
+    </div>
+    <p class="muted">CSV format: Dealer, Area for dealer-area mapping; Master, Value is also accepted for Species, Type and Size. Import adds new values without deleting existing masters.</p>
+  </section>
+  <section class="panel formpanel tab-panel" data-tab-panel="entry">
+    <h2 id="formHeading">Add New Sample</h2>
+    <form id="sampleForm">
+      <input type="hidden" id="editId">
+      <div class="formgrid">
+        <div><label for="sampleDate">Sample Date *</label><input id="sampleDate" type="date" required></div>
+        <div><label for="dealerName">Dealer Name *</label><select id="dealerName" required><option value="">Select dealer</option></select></div>
+        <div><label for="area">Area</label><input id="area" placeholder="Enter dealer area / city"></div>
+        <div><label for="speciesName">Species Name *</label><select id="speciesName" required><option value="">Select species</option></select></div>
+        <div><label for="veneerType">Type</label><select id="veneerType"><option value="">Select type</option></select></div>
+        <div><label for="groupNo">Group No. *</label><input id="groupNo" placeholder="Enter group number" required></div>
+        <div><label for="noOfPcs">No. of Pcs *</label><input id="noOfPcs" type="number" min="0" step="1" placeholder="Enter quantity" required></div>
+        <div><label for="size">Size</label><select id="size"><option value="">Select size</option></select></div>
+        <div><label for="sampleStatus">Sample Status</label><select id="sampleStatus"><option value="Given">Given</option><option value="Returned">Returned</option></select></div>
+        <div class="wide"><label for="remark">Remark</label><textarea id="remark" placeholder="Any additional details..."></textarea></div>
+      </div>
+      <div class="actions"><button type="submit" id="saveBtn">Save Sample</button><button type="button" class="secondary" id="cancelBtn" hidden>Cancel Edit</button><span id="message"></span></div>
+    </form>
+  </section>
+
+  <section class="panel tab-panel" data-tab-panel="register" hidden>
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+      <h2 style="margin:0">Sample Register</h2>
+      <div class="top-actions"><button class="secondary" id="exportBtn">Export CSV (Excel)</button><button class="secondary" id="printBtn">Print Register</button></div>
+    </div>
+    <div class="toolbar" style="margin-top:15px">
+      <input id="search" placeholder="Search dealer, species, group no., type...">
+      <input id="dateFrom" type="date" aria-label="From date">
+      <input id="dateTo" type="date" aria-label="To date">
+      <select id="statusFilter"><option value="">All Statuses</option><option value="Given">Given</option><option value="Returned">Returned</option></select>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Sample Date</th><th>Dealer Name</th><th>Area</th><th>Species</th><th>Type</th><th>Group No.</th><th>Pcs</th><th>Size</th><th>Status</th><th>Remark</th><th class="editcol">Actions</th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty">No sample records added yet.</div>
+    </div>
+    <p class="muted">Records are saved in this browser on this device. Use “Backup Data” regularly to keep a copy.</p>
+  </section>
+  <section class="panel tab-panel" data-tab-panel="history" hidden>
+    <h2>Dealer-wise Sample History</h2>
+    <div class="reportfilters"><select id="historyDealer"><option value="">Select dealer</option></select><input id="historyFrom" type="date" aria-label="History from date"><input id="historyTo" type="date" aria-label="History to date"></div>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat"><span>Total Entries</span><strong id="historyEntries">0</strong></div>
+      <div class="stat"><span>Total Pieces</span><strong id="historyPieces">0</strong></div>
+      <div class="stat"><span>Given / Returned</span><strong id="historyStatus">0 / 0</strong></div>
+    </div>
+    <div class="top-actions" style="margin:10px 0 14px"><button class="secondary" id="exportHistoryBtn">Export History CSV</button><button class="secondary" id="printHistoryBtn">Print History</button><button id="printSelectedGroupsBtn">Print Selected Groups – A6</button><button class="secondary" id="selectAllHistoryBtn">Select All Groups</button><button class="secondary" id="clearHistorySelectionBtn">Clear Selection</button></div>
+    <div class="tablewrap"><table><thead><tr><th><input type="checkbox" id="selectAllHistoryRows" aria-label="Select all visible groups"></th><th>Sample Date</th><th>Area</th><th>Species</th><th>Type</th><th>Group No.</th><th>Pcs</th><th>Size</th><th>Status</th><th>Remark</th></tr></thead><tbody id="historyBody"></tbody></table><div id="historyEmpty" class="empty">Select a dealer to view sample history.</div></div>
+  </section>
+</main>
+<div id="a6PrintArea" aria-hidden="true"></div>
+<footer>Veneer Sample Management · Offline browser version</footer>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'veneer_sample_management_v1';
+  const DEALER_KEY = 'veneer_sample_dealer_master_v1';
+  const DEALER_AREA_KEY = 'veneer_sample_dealer_area_map_v1';
+  const SPECIES_KEY = 'veneer_sample_species_master_v1';
+  const TYPE_KEY = 'veneer_sample_type_master_v1';
+  const SIZE_KEY = 'veneer_sample_size_master_v1';
+  let dealerMaster = [], speciesMaster = [], typeMaster = [], sizeMaster = [], dealerAreaMap = {};
+  const $ = id => document.getElementById(id);
+  let records = [];
+  let selectedHistoryIds = new Set();
+  const fields = ['sampleDate','dealerName','speciesName','veneerType','groupNo','noOfPcs','size','sampleStatus','remark'];
+
+  function todayLocal(){
+    const d = new Date();
+    return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  }
+  function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function load(){
+    try { records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { records = []; }
+    if (!Array.isArray(records)) records = [];
+    try { dealerMaster = JSON.parse(localStorage.getItem(DEALER_KEY) || '[]'); } catch { dealerMaster = []; }
+    try { dealerAreaMap = JSON.parse(localStorage.getItem(DEALER_AREA_KEY) || '{}'); } catch { dealerAreaMap = {}; }
+    if (!dealerAreaMap || typeof dealerAreaMap !== 'object' || Array.isArray(dealerAreaMap)) dealerAreaMap = {};
+    try { speciesMaster = JSON.parse(localStorage.getItem(SPECIES_KEY) || '[]'); } catch { speciesMaster = []; }
+    try { typeMaster = JSON.parse(localStorage.getItem(TYPE_KEY) || '[]'); } catch { typeMaster = []; }
+    try { sizeMaster = JSON.parse(localStorage.getItem(SIZE_KEY) || '[]'); } catch { sizeMaster = []; }
+    // Bring any names from earlier sample entries into the masters automatically.
+    records.forEach(r=>{ if(r.dealerName && r.area && !dealerAreaMap[r.dealerName]) dealerAreaMap[r.dealerName]=r.area; });
+    dealerMaster = [...new Set([...dealerMaster, ...records.map(r=>r.dealerName).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+    speciesMaster = [...new Set([...speciesMaster, ...records.map(r=>r.speciesName).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+    typeMaster = [...new Set([...typeMaster, ...records.map(r=>r.veneerType).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+    sizeMaster = [...new Set([...sizeMaster, ...records.map(r=>r.size).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+    saveMasters();
+    render();
+  }
+  function saveMasters(){
+    localStorage.setItem(DEALER_KEY, JSON.stringify(dealerMaster));
+    localStorage.setItem(DEALER_AREA_KEY, JSON.stringify(dealerAreaMap));
+    localStorage.setItem(SPECIES_KEY, JSON.stringify(speciesMaster));
+    localStorage.setItem(TYPE_KEY, JSON.stringify(typeMaster));
+    localStorage.setItem(SIZE_KEY, JSON.stringify(sizeMaster));
+    renderMasters();
+  }
+  function renderMasters(){
+    const fillSelect = (id, values, placeholder, current='') => {
+      $(id).innerHTML = '<option value="">'+placeholder+'</option>' + values.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('');
+      if (current && values.includes(current)) $(id).value = current;
+    };
+    const selectedDealer = $('dealerName').value, selectedSpecies = $('speciesName').value, selectedType = $('veneerType').value, selectedSize = $('size').value;
+    fillSelect('dealerName', dealerMaster, 'Select dealer', selectedDealer);
+    fillSelect('speciesName', speciesMaster, 'Select species', selectedSpecies);
+    fillSelect('veneerType', typeMaster, 'Select type', selectedType);
+    fillSelect('size', sizeMaster, 'Select size', selectedSize);
+    const histVal = $('historyDealer').value;
+    $('historyDealer').innerHTML = '<option value="">Select dealer</option>' + dealerMaster.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('');
+    if (histVal && dealerMaster.includes(histVal)) $('historyDealer').value = histVal;
+    if (selectedDealer && !$('editId').value) $('area').value = dealerAreaMap[selectedDealer] || $('area').value || '';
+    const drawList = (id, values, kind) => {
+      $(id).innerHTML = values.length ? values.map(v=>'<div class="masteritem"><span>'+escapeHtml(v)+'</span><button type="button" class="danger" data-master-kind="'+kind+'" data-master-value="'+encodeURIComponent(v)+'">Remove</button></div>').join('') : '<p class="muted">No entries added yet.</p>';
+    };
+    $('dealerMasterList').innerHTML = dealerMaster.length ? dealerMaster.map(v=>'<div class="masteritem"><span><strong>'+escapeHtml(v)+'</strong><br><small>'+escapeHtml(dealerAreaMap[v] || 'Area not set')+'</small></span><button type="button" class="danger" data-master-kind="dealer" data-master-value="'+encodeURIComponent(v)+'">Remove</button></div>').join('') : '<p class="muted">No entries added yet.</p>';
+    drawList('speciesMasterList', speciesMaster, 'species');
+    drawList('typeMasterList', typeMaster, 'type');
+    drawList('sizeMasterList', sizeMaster, 'size');
+  }
+  function masterList(kind){ return ({dealer:dealerMaster,species:speciesMaster,type:typeMaster,size:sizeMaster})[kind]; }
+  function addMaster(kind){
+    const input = $('new'+kind[0].toUpperCase()+kind.slice(1)+'Master'), list=masterList(kind), value=input.value.trim();
+    if (!value) { input.focus(); return; }
+    if (kind==='dealer') {
+      const area=$('newDealerArea').value.trim();
+      const existing=list.find(x=>x.toLowerCase()===value.toLowerCase());
+      if(existing){ if(area)dealerAreaMap[existing]=area; else if(!dealerAreaMap[existing]){alert('Please enter the dealer area.');$('newDealerArea').focus();return;} }
+      else { if(!area){alert('Please enter the dealer area for this dealer.');$('newDealerArea').focus();return;} list.push(value); dealerAreaMap[value]=area; }
+      list.sort((a,b)=>a.localeCompare(b)); input.value=''; $('newDealerArea').value=''; saveMasters(); $('dealerName').value=existing||value; $('area').value=dealerAreaMap[existing||value]||''; return;
+    }
+    if (list.some(x=>x.toLowerCase()===value.toLowerCase())) { alert('This '+kind+' is already in the master list.'); return; }
+    list.push(value); list.sort((a,b)=>a.localeCompare(b)); input.value=''; saveMasters();
+    const selectId=({species:'speciesName',type:'veneerType',size:'size'})[kind]; $(selectId).value=value;
+  }
+  function persist(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    render();
+  }
+  function visibleRecords(){
+    const q = $('search').value.trim().toLowerCase();
+    const from = $('dateFrom').value, to = $('dateTo').value, status = $('statusFilter').value;
+    return records.filter(r => {
+      const text = [r.dealerName,r.area,r.speciesName,r.veneerType,r.groupNo,r.size,r.remark].join(' ').toLowerCase();
+      return (!q || text.includes(q)) && (!from || r.sampleDate >= from) && (!to || r.sampleDate <= to) && (!status || r.sampleStatus === status);
+    }).sort((a,b) => b.sampleDate.localeCompare(a.sampleDate) || b.createdAt.localeCompare(a.createdAt));
+  }
+  function render(){
+    const rows = visibleRecords();
+    $('totalEntries').textContent = records.length;
+    $('totalPieces').textContent = records.reduce((sum,r) => sum + Number(r.noOfPcs || 0), 0);
+    $('totalGroups').textContent = new Set(records.map(r => r.groupNo.trim().toLowerCase())).size;
+    renderMasters();
+    $('recordsBody').innerHTML = rows.map(r => `<tr>
+      <td>${escapeHtml(r.sampleDate)}</td><td>${escapeHtml(r.dealerName)}</td><td>${escapeHtml(r.area || '')}</td><td>${escapeHtml(r.speciesName)}</td>
+      <td>${escapeHtml(r.veneerType)}</td><td><strong>${escapeHtml(r.groupNo)}</strong></td><td>${escapeHtml(r.noOfPcs)}</td>
+      <td>${escapeHtml(r.size)}</td><td><span class="badge ${r.sampleStatus==='Returned'?'returned':''}">${escapeHtml(r.sampleStatus)}</span></td>
+      <td>${escapeHtml(r.remark)}</td><td class="editcol"><button class="secondary" data-edit="${r.id}">Edit</button> <button class="secondary" data-slip="${r.id}">A6 Slip</button> <button class="danger" data-delete="${r.id}">Delete</button></td>
+    </tr>`).join('');
+    $('emptyState').style.display = rows.length ? 'none' : 'block';
+    renderHistory();
+  }
+
+
+  function printA6MultiGroupSlip(){
+    const dealer=$('historyDealer').value;
+    if(!dealer){alert('Please select a dealer first.');return;}
+    const chosen=historyRecords().filter(r=>selectedHistoryIds.has(r.id));
+    if(!chosen.length){alert('Please tick one or more groups in the Dealer-wise Sample History first.');return;}
+    const area=chosen[0].area || dealerAreaMap[dealer] || '';
+    const totalPcs=chosen.reduce((s,r)=>s+Number(r.noOfPcs||0),0);
+    const bodyRows=chosen.map((r,i)=>`<tr>
+      <td>${i+1}</td><td><strong>${escapeHtml(r.groupNo)}</strong></td><td>${escapeHtml(r.speciesName)}</td>
+      <td>${escapeHtml(r.veneerType||'—')}</td><td>${escapeHtml(r.noOfPcs)}</td><td>${escapeHtml(r.size||'—')}</td>
+      <td>${escapeHtml(r.sampleDate||'—')}</td>
+    </tr>`).join('');
+    $('a6PrintArea').innerHTML=`<div class="slip multi-slip">
+      <h1>SAMPLE RETURN SLIP</h1><div class="slip-sub">Multiple Group Return</div>
+      <div class="slip-line"><span>Dealer Name</span><strong>${escapeHtml(dealer)}</strong></div>
+      <div class="slip-line"><span>Area</span><strong>${escapeHtml(area||'—')}</strong></div>
+      <div class="slip-line"><span>Return Date</span><strong>________________</strong></div>
+      <div class="multi-summary"><strong>${chosen.length}</strong> Groups &nbsp; | &nbsp; <strong>${totalPcs}</strong> Total Pieces</div>
+      <table class="multi-groups"><thead><tr><th>#</th><th>Group No.</th><th>Species</th><th>Type</th><th>Pcs</th><th>Size</th><th>Given</th></tr></thead><tbody>${bodyRows}</tbody></table>
+      <div class="slip-note"><strong>Returned sample condition / remarks:</strong><br><br>________________________________________________<br><br>________________________________________________</div>
+      <div class="slip-sign"><div>Dealer / Returned By</div><div>Received By / Signature</div></div>
+      <div class="slip-foot">Please verify each group and piece quantity at the time of return.</div>
+    </div>`;
+    document.body.classList.add('print-a6');
+    const cleanup=()=>{document.body.classList.remove('print-a6');window.removeEventListener('afterprint',cleanup);};
+    window.addEventListener('afterprint',cleanup);window.print();setTimeout(cleanup,1800);
+  }
+
+  function printA6Slip(id){
+    const r=records.find(x=>x.id===id); if(!r)return;
+    $('a6PrintArea').innerHTML=`<div class="slip">
+      <h1>SAMPLE RETURN SLIP</h1><div class="slip-sub">Veneer Sample Management</div>
+      <div class="slip-line"><span>Dealer Name</span><strong>${escapeHtml(r.dealerName)}</strong></div>
+      <div class="slip-line"><span>Area</span><strong>${escapeHtml(r.area||'—')}</strong></div>
+      <div class="slip-group"><small>GROUP NUMBER</small><strong>${escapeHtml(r.groupNo)}</strong></div>
+      <div class="slip-line"><span>Species</span><strong>${escapeHtml(r.speciesName)}</strong></div>
+      <div class="slip-line"><span>Type</span><strong>${escapeHtml(r.veneerType||'—')}</strong></div>
+      <div class="slip-line"><span>No. of Pieces</span><strong>${escapeHtml(r.noOfPcs)}</strong></div>
+      <div class="slip-line"><span>Size</span><strong>${escapeHtml(r.size||'—')}</strong></div>
+      <div class="slip-line"><span>Sample Given Date</span><strong>${escapeHtml(r.sampleDate||'—')}</strong></div>
+      <div class="slip-line"><span>Current Status</span><strong>${escapeHtml(r.sampleStatus||'Given')}</strong></div>
+      <div class="slip-line"><span>Return Date</span><strong>________________</strong></div>
+      <div class="slip-note"><strong>Received sample condition / remarks:</strong><br><br>________________________________________________<br><br>________________________________________________</div>
+      <div class="slip-sign"><div>Dealer / Returned By</div><div>Received By / Signature</div></div>
+      <div class="slip-foot">Please verify group number and pieces at the time of return.</div>
+    </div>`;
+    document.body.classList.add('print-a6');
+    const cleanup=()=>{document.body.classList.remove('print-a6');window.removeEventListener('afterprint',cleanup);};
+    window.addEventListener('afterprint',cleanup);window.print();setTimeout(cleanup,1800);
+  }
+
+  function historyRecords(){
+    const dealer=$('historyDealer').value, from=$('historyFrom').value, to=$('historyTo').value;
+    return records.filter(r=>dealer && r.dealerName===dealer && (!from || r.sampleDate>=from) && (!to || r.sampleDate<=to)).sort((a,b)=>b.sampleDate.localeCompare(a.sampleDate));
+  }
+  function renderHistory(){
+    const rows=historyRecords(), given=rows.filter(r=>r.sampleStatus==='Given').length, returned=rows.filter(r=>r.sampleStatus==='Returned').length;
+    $('historyEntries').textContent=rows.length; $('historyPieces').textContent=rows.reduce((s,r)=>s+Number(r.noOfPcs||0),0); $('historyStatus').textContent=given+' / '+returned;
+    $('historyBody').innerHTML=rows.map(r=>`<tr><td><input type="checkbox" class="history-row-check" data-history-id="${escapeHtml(r.id)}" ${selectedHistoryIds.has(r.id)?'checked':''}></td><td>${escapeHtml(r.sampleDate)}</td><td>${escapeHtml(r.area || '')}</td><td>${escapeHtml(r.speciesName)}</td><td>${escapeHtml(r.veneerType)}</td><td><strong>${escapeHtml(r.groupNo)}</strong></td><td>${escapeHtml(r.noOfPcs)}</td><td>${escapeHtml(r.size)}</td><td>${escapeHtml(r.sampleStatus)}</td><td>${escapeHtml(r.remark)}</td></tr>`).join('');
+    $('historyEmpty').style.display=rows.length?'none':'block'; $('historyEmpty').textContent=$('historyDealer').value?'No history found for the selected filters.':'Select a dealer to view sample history.';
+    const allBox=$('selectAllHistoryRows');
+    if(allBox){allBox.checked=rows.length>0 && rows.every(r=>selectedHistoryIds.has(r.id));allBox.indeterminate=rows.some(r=>selectedHistoryIds.has(r.id))&&!allBox.checked;}
+  }
+  function downloadCsv(filename, rows){
+    const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+  }
+  function parseCsv(text){
+    const rows=[];let row=[],cell='',quoted=false;
+    for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c==='"'&&quoted&&n==='"'){cell+='"';i++;}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(x=>x.trim()))rows.push(row);row=[];cell='';}else cell+=c;}
+    row.push(cell);if(row.some(x=>x.trim()))rows.push(row);return rows;
+  }
+  function resetForm(){
+    $('sampleForm').reset(); $('editId').value=''; $('sampleDate').value=todayLocal(); $('dealerName').value=''; $('speciesName').value='';
+    $('formHeading').textContent='Add New Sample'; $('saveBtn').textContent='Save Sample';
+    $('cancelBtn').hidden=true; $('message').textContent='';
+  }
+  document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b===btn));
+    document.querySelectorAll('[data-tab-panel]').forEach(panel=>panel.hidden=panel.dataset.tabPanel!==btn.dataset.tab);
+    if(btn.dataset.tab==='history')renderHistory();
+  }));
+  ['historyDealer','historyFrom','historyTo'].forEach(id=>$(id).addEventListener('input',renderHistory));
+
+  $('historyBody').addEventListener('change',e=>{
+    const box=e.target.closest('.history-row-check');if(!box)return;
+    if(box.checked)selectedHistoryIds.add(box.dataset.historyId);else selectedHistoryIds.delete(box.dataset.historyId);
+    renderHistory();
+  });
+  $('selectAllHistoryRows').addEventListener('change',e=>{
+    historyRecords().forEach(r=>{if(e.target.checked)selectedHistoryIds.add(r.id);else selectedHistoryIds.delete(r.id);});
+    renderHistory();
+  });
+  $('selectAllHistoryBtn').addEventListener('click',()=>{historyRecords().forEach(r=>selectedHistoryIds.add(r.id));renderHistory();});
+  $('clearHistorySelectionBtn').addEventListener('click',()=>{selectedHistoryIds.clear();renderHistory();});
+  $('printSelectedGroupsBtn').addEventListener('click',printA6MultiGroupSlip);
+
+  $('exportHistoryBtn').addEventListener('click',()=>{if(!$('historyDealer').value){alert('Please select a dealer first.');return;}const rows=historyRecords();downloadCsv('dealer-sample-history.csv',[['Sample Date','Dealer Name','Area','Species','Type','Group No.','Pcs','Size','Status','Remark'],...rows.map(r=>[r.sampleDate,r.dealerName,r.area || '',r.speciesName,r.veneerType,r.groupNo,r.noOfPcs,r.size,r.sampleStatus,r.remark])]);});
+  $('printHistoryBtn').addEventListener('click',()=>{if(!$('historyDealer').value){alert('Please select a dealer first.');return;}window.print();});
+  $('exportMastersBtn').addEventListener('click',()=>downloadCsv('veneer-masters.csv',[['Dealer','Area','Master','Value'],...dealerMaster.map(v=>[v,dealerAreaMap[v]||'','Dealer',v]),...speciesMaster.map(v=>['','', 'Species',v]),...typeMaster.map(v=>['','', 'Type',v]),...sizeMaster.map(v=>['','', 'Size',v])]));
+  $('importMastersBtn').addEventListener('click',()=>$('importMastersFile').click());
+  $('importMastersFile').addEventListener('change',async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try{const rows=parseCsv(await file.text());if(rows.length<2)throw new Error('CSV is empty or has no data rows.');const header=rows.shift().map(x=>x.trim().toLowerCase()),mi=header.indexOf('master'),vi=header.indexOf('value'),di=header.indexOf('dealer'),ai=header.indexOf('area');
+      if((mi<0||vi<0)&&(di<0||ai<0))throw new Error('CSV must contain Dealer and Area columns, or Master and Value columns.');
+      const lists={dealer:dealerMaster,species:speciesMaster,type:typeMaster,size:sizeMaster};let added=0;
+      rows.forEach(row=>{
+        if(di>=0&&ai>=0){const dealer=(row[di]||'').trim(),area=(row[ai]||'').trim();if(dealer){let match=dealerMaster.find(x=>x.toLowerCase()===dealer.toLowerCase());if(!match){dealerMaster.push(dealer);match=dealer;added++;}if(area)dealerAreaMap[match]=area;}}
+        if(mi>=0&&vi>=0){const kind=(row[mi]||'').trim().toLowerCase(),value=(row[vi]||'').trim();if(lists[kind]&&value&&!lists[kind].some(x=>x.toLowerCase()===value.toLowerCase())){lists[kind].push(value);added++;}}
+      });
+      [dealerMaster,speciesMaster,typeMaster,sizeMaster].forEach(a=>a.sort((x,y)=>x.localeCompare(y)));saveMasters();alert(added+' master value(s) imported. Existing values were kept.');
+    }catch(err){alert(err.message||'Unable to import CSV.');}e.target.value='';
+  });
+  $('addDealerMaster').addEventListener('click',()=>addMaster('dealer'));
+  $('addSpeciesMaster').addEventListener('click',()=>addMaster('species'));
+  $('addTypeMaster').addEventListener('click',()=>addMaster('type'));
+  $('addSizeMaster').addEventListener('click',()=>addMaster('size'));
+  $('newDealerMaster').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('newDealerArea').focus();}});
+  $('newDealerArea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMaster('dealer');}});
+  $('newSpeciesMaster').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMaster('species');}});
+  $('newTypeMaster').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMaster('type');}});
+  $('newSizeMaster').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMaster('size');}});
+  document.querySelector('.masterbox').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-master-kind]'); if(!btn)return;
+    const kind=btn.dataset.masterKind, value=decodeURIComponent(btn.dataset.masterValue);
+    const field=({dealer:'dealerName',species:'speciesName',type:'veneerType',size:'size'})[kind];
+    const inUse=records.some(r=>r[field]===value);
+    if(inUse){alert('This '+kind+' is used in existing sample records, so it cannot be removed.');return;}
+    if(!confirm('Remove '+value+' from the '+kind+' master?'))return;
+    if(kind==='dealer')dealerMaster=dealerMaster.filter(x=>x!==value);else if(kind==='species')speciesMaster=speciesMaster.filter(x=>x!==value);else if(kind==='type')typeMaster=typeMaster.filter(x=>x!==value);else sizeMaster=sizeMaster.filter(x=>x!==value);
+    saveMasters();
+  });
+  $('dealerName').addEventListener('change',()=>{const d=$('dealerName').value; $('area').value=d?(dealerAreaMap[d]||''):'';});
+  $('sampleForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const id = $('editId').value;
+    const record = {
+      id: id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+      sampleDate: $('sampleDate').value,
+      dealerName: $('dealerName').value.trim(),
+      area: $('area').value.trim(),
+      speciesName: $('speciesName').value.trim(),
+      veneerType: $('veneerType').value.trim(),
+      groupNo: $('groupNo').value.trim(),
+      noOfPcs: Number($('noOfPcs').value),
+      size: $('size').value.trim(),
+      sampleStatus: $('sampleStatus').value,
+      remark: $('remark').value.trim(),
+      createdAt: id ? (records.find(x=>x.id===id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+    };
+    if (!record.sampleDate || !record.dealerName || !record.speciesName || !record.groupNo || !Number.isFinite(record.noOfPcs) || record.noOfPcs < 0) {
+      $('message').textContent = 'Please complete all required fields correctly.'; return;
+    }
+    if (record.dealerName && record.area) dealerAreaMap[record.dealerName]=record.area;
+    saveMasters();
+    if (id) records = records.map(r => r.id === id ? record : r);
+    else records.push(record);
+    persist(); resetForm(); $('message').textContent = id ? 'Record updated successfully.' : 'Sample saved successfully.';
+  });
+  $('cancelBtn').addEventListener('click', resetForm);
+  $('recordsBody').addEventListener('click', e => {
+    const editId = e.target.dataset.edit, deleteId = e.target.dataset.delete, slipId = e.target.dataset.slip;
+    if (slipId) { printA6Slip(slipId); return; }
+    if (editId) {
+      const r = records.find(x=>x.id===editId); if (!r) return;
+      $('editId').value=r.id;
+      const map = {sampleDate:r.sampleDate,dealerName:r.dealerName,area:r.area || '',speciesName:r.speciesName,veneerType:r.veneerType,groupNo:r.groupNo,noOfPcs:r.noOfPcs,size:r.size,sampleStatus:r.sampleStatus,remark:r.remark};
+      Object.entries(map).forEach(([k,v])=>$(k).value=v ?? '');
+      $('formHeading').textContent='Edit Sample Entry'; $('saveBtn').textContent='Update Sample'; $('cancelBtn').hidden=false;
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    if (deleteId) {
+      const r = records.find(x=>x.id===deleteId);
+      if (r && confirm(`Delete group ${r.groupNo} for ${r.dealerName}? This cannot be undone.`)) {
+        records=records.filter(x=>x.id!==deleteId); persist();
+      }
+    }
+  });
+  ['search','dateFrom','dateTo','statusFilter'].forEach(id => $(id).addEventListener('input',render));
+  $('exportBtn').addEventListener('click', () => {
+    const cols = ['sampleDate','dealerName','area','speciesName','veneerType','groupNo','noOfPcs','size','sampleStatus','remark'];
+    const headings = ['Sample Date','Dealer Name','Area','Species Name','Type','Group No.','No. of Pcs','Size','Sample Status','Remark'];
+    const csv = [headings, ...visibleRecords().map(r=>cols.map(k=>r[k] ?? ''))]
+      .map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='veneer-sample-register.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+  $('printBtn').addEventListener('click',()=>window.print());
+  $('backupBtn').addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify({app:'Veneer Sample Management',version:2,exportedAt:new Date().toISOString(),records,dealers:dealerMaster,dealerAreas:dealerAreaMap,species:speciesMaster,types:typeMaster,sizes:sizeMaster},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='veneer-sample-backup.json';a.click();URL.revokeObjectURL(url);
+  });
+  $('restoreBtn').addEventListener('click',()=>$('restoreFile').click());
+  $('restoreFile').addEventListener('change',async e=>{
+    const file=e.target.files[0]; if(!file)return;
+    try{
+      const data=JSON.parse(await file.text()), incoming=Array.isArray(data)?data:data.records;
+      if(!Array.isArray(incoming) || !incoming.every(r=>r && r.id && r.sampleDate && r.dealerName && r.groupNo)) throw new Error('This file does not look like a valid veneer sample backup.');
+      if(!confirm(`Restore ${incoming.length} records? This will replace the records currently saved in this browser.`))return;
+      records=incoming; if(Array.isArray(data.dealers))dealerMaster=data.dealers; if(data.dealerAreas && typeof data.dealerAreas==='object')dealerAreaMap=data.dealerAreas; if(Array.isArray(data.species))speciesMaster=data.species; if(Array.isArray(data.types))typeMaster=data.types; if(Array.isArray(data.sizes))sizeMaster=data.sizes; persist(); saveMasters(); alert('Backup restored successfully.');
+    }catch(err){alert(err.message || 'Could not read this backup file.');}
+    e.target.value='';
+  });
+  $('sampleDate').value=todayLocal();
+  load();
+})();
+</script>
+</body>
+</html>
