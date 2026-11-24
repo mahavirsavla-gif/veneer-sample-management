@@ -474,6 +474,223 @@ body.print-a6 #a6PrintArea .multi-slip .slip-foot{font-size:6px;margin-top:2mm}
   });
   $('sampleDate').value=todayLocal();
   load();
+
+  // ===== SUPABASE CLOUD CONNECTION =====
+  const SUPABASE_URL = 'https://jurmdcvcdpfkqutmjzzb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_LVrC2JIYI77EC8wncjsHRw_GT8GqdDC';
+
+  const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let cloudReady = false;
+
+  // Create login screen
+  const loginBox = document.createElement('div');
+  loginBox.id = 'cloudLogin';
+  loginBox.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f3f6fb;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial';
+  loginBox.innerHTML = `
+    <div style="background:white;padding:28px;border-radius:14px;width:100%;max-width:380px;box-shadow:0 5px 25px #0002">
+      <h2 style="color:#17345c">Veneer Sample Management</h2>
+      <p style="color:#64748b;font-size:14px">Sign in to access your cloud data.</p>
+      <form id="cloudLoginForm">
+        <label>Email</label>
+        <input id="cloudEmail" type="email" value="mahavirsavla@gmail.com" required style="width:100%;padding:11px;margin:7px 0 15px;box-sizing:border-box">
+        <label>Password</label>
+        <input id="cloudPassword" type="password" required placeholder="Enter your password" style="width:100%;padding:11px;margin:7px 0 15px;box-sizing:border-box">
+        <button id="cloudLoginBtn" type="submit" style="width:100%;padding:12px">Sign in</button>
+        <p id="cloudLoginMsg" style="color:#b42318;font-size:13px"></p>
+      </form>
+    </div>`;
+  document.body.prepend(loginBox);
+
+  const loginMsg = document.getElementById('cloudLoginMsg');
+
+  // Convert app records to database format
+  function toCloudRecord(r) {
+    return {
+      id: String(r.id),
+      sample_date: r.sampleDate,
+      dealer_name: r.dealerName,
+      area: r.area || '',
+      species_name: r.speciesName,
+      veneer_type: r.veneerType,
+      group_no: r.groupNo,
+      no_of_pcs: Number(r.noOfPcs || 0),
+      size: r.size,
+      sample_status: r.sampleStatus,
+      remark: r.remark || '',
+      created_at: r.createdAt || new Date().toISOString()
+    };
+  }
+
+  // Convert database records to app format
+  function fromCloudRecord(r) {
+    return {
+      id: String(r.id),
+      sampleDate: r.sample_date,
+      dealerName: r.dealer_name,
+      area: r.area || '',
+      speciesName: r.species_name,
+      veneerType: r.veneer_type,
+      groupNo: r.group_no,
+      noOfPcs: Number(r.no_of_pcs || 0),
+      size: r.size,
+      sampleStatus: r.sample_status,
+      remark: r.remark || '',
+      createdAt: r.created_at || new Date().toISOString()
+    };
+  }
+
+  // Prepare master data
+  function cloudMasterRows() {
+    const rows = [];
+    dealerMaster.forEach(v =>
+      rows.push({category:'dealer', value:v, area:dealerAreaMap[v] || null})
+    );
+    speciesMaster.forEach(v =>
+      rows.push({category:'species', value:v, area:null})
+    );
+    typeMaster.forEach(v =>
+      rows.push({category:'type', value:v, area:null})
+    );
+    sizeMaster.forEach(v =>
+      rows.push({category:'size', value:v, area:null})
+    );
+    return rows;
+  }
+
+  // Upload local data to cloud
+  async function syncLocalToCloud() {
+    if (!cloudReady) return;
+
+    if (records.length) {
+      const {error} = await cloud.from('veneer_samples')
+        .upsert(records.map(toCloudRecord), {onConflict:'id'});
+      if (error) throw error;
+    }
+
+    const masters = cloudMasterRows();
+    if (masters.length) {
+      const {error} = await cloud.from('veneer_masters')
+        .upsert(masters, {onConflict:'category,value'});
+      if (error) throw error;
+    }
+  }
+
+  // Load and merge cloud data with browser data
+  async function initializeCloud() {
+    loginMsg.textContent = 'Loading your cloud data...';
+
+    const {data:sampleRows, error:sampleError} =
+      await cloud.from('veneer_samples').select('*');
+
+    if (sampleError) throw sampleError;
+
+    const {data:masterRows, error:masterError} =
+      await cloud.from('veneer_masters').select('*');
+
+    if (masterError) throw masterError;
+
+    const merged = new Map(records.map(r => [String(r.id), r]));
+
+    (sampleRows || []).forEach(row => {
+      if (!merged.has(String(row.id))) {
+        merged.set(String(row.id), fromCloudRecord(row));
+      }
+    });
+
+    records = Array.from(merged.values());
+
+    (masterRows || []).forEach(m => {
+      if (m.category === 'dealer') {
+        if (!dealerMaster.includes(m.value)) dealerMaster.push(m.value);
+        if (m.area) dealerAreaMap[m.value] = m.area;
+      }
+      if (m.category === 'species' && !speciesMaster.includes(m.value))
+        speciesMaster.push(m.value);
+      if (m.category === 'type' && !typeMaster.includes(m.value))
+        typeMaster.push(m.value);
+      if (m.category === 'size' && !sizeMaster.includes(m.value))
+        sizeMaster.push(m.value);
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+
+    originalSaveMasters();
+    cloudReady = true;
+    render();
+
+    await syncLocalToCloud();
+
+    loginBox.style.display = 'none';
+    $('message').textContent = 'Cloud connected. Data synced successfully.';
+  }
+
+  // Keep original local saving functions
+  const originalPersist = persist;
+  const originalSaveMasters = saveMasters;
+
+  persist = function() {
+    originalPersist();
+    if (cloudReady) {
+      syncLocalToCloud().catch(err =>
+        alert('Cloud sync error: ' + err.message)
+      );
+    }
+  };
+
+  saveMasters = function() {
+    originalSaveMasters();
+    if (cloudReady) {
+      syncLocalToCloud().catch(err =>
+        alert('Cloud sync error: ' + err.message)
+      );
+    }
+  };
+
+  // Login
+  document.getElementById('cloudLoginForm')
+    .addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('cloudLoginBtn');
+      btn.disabled = true;
+      btn.textContent = 'Connecting...';
+      loginMsg.textContent = '';
+
+      try {
+        const {error} = await cloud.auth.signInWithPassword({
+          email: document.getElementById('cloudEmail').value.trim(),
+          password: document.getElementById('cloudPassword').value
+        });
+
+        if (error) throw error;
+
+        document.getElementById('cloudPassword').value = '';
+        await initializeCloud();
+
+      } catch (err) {
+        loginMsg.textContent = err.message || 'Login failed. Please try again.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+
+  // Check for an existing login session
+  (async function() {
+    try {
+      const {data, error} = await cloud.auth.getSession();
+      if (error) throw error;
+
+      if (data.session) {
+        await initializeCloud();
+      }
+    } catch (err) {
+      loginBox.style.display = 'flex';
+      loginMsg.textContent = err.message || 'Cloud connection failed.';
+    }
+  })();
+  // ===== END SUPABASE CLOUD CONNECTION =====
+
 })();
 </script>
 </body>
